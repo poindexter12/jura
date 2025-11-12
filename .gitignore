@@ -2,3 +2,8 @@
 CLAUDE.md
 .claude/
 .claude*
+
+## Python
+__pycache__/
+*.pyc
+*.pyo
