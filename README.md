@@ -121,6 +121,41 @@ The sensors exposed by each machine may be different depending on the model sele
 
 <img width="330" alt="Jura Dashboard" src="https://github.com/user-attachments/assets/8fde2d3c-cc85-4a5d-ab0a-e84f5641cd6e" />
 
+### Control Commands
+
+You can create buttons to control your Jura machine using the `cmd2jura()` function. Here are common commands:
+
+#### Machine Control
+| Command | Description |
+|---------|-------------|
+| `AN:01` | Turn machine on |
+| `AN:02` | Turn machine off |
+
+#### Beverage Commands
+| Command | Beverage | Notes |
+|---------|----------|-------|
+| `FA:04` | Single Espresso | Standard espresso shot |
+| `FA:05` | Ristretto | Short, concentrated espresso |
+| `FA:06` | Hot Water | Dispense hot water |
+| `FA:07` | Cappuccino | Espresso with milk foam (models with milk capability) |
+| `FA:09` | Coffee | Standard coffee |
+
+**Note**: Available beverages vary by model. Not all commands work on all machines (e.g., cappuccino requires milk frothing capability).
+
+#### Example Button Configuration
+
+```yaml
+button:
+  - platform: template
+    name: 'Make Espresso'
+    icon: "mdi:coffee"
+    on_press:
+      - lambda: |-
+          auto result = id(jura_coffee).cmd2jura("FA:04");
+```
+
+See the [examples/](examples/) folder for complete button configurations for each model.
+
 ---
 
 ## 🥶 Jura CoolControl Component
