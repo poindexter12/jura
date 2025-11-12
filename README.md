@@ -87,9 +87,9 @@ jura_coolcontrol:
 ```
 This is just the barebones structure to show you how to reference external components.
 
-*Note that for the Jura component, you need to specify a Model. Current options are: F6, F7, E8 or UNKNOWN.  We are working on adding support for new models and enhancing current model detail as the communnty gives feedback, using the diagnostic functions.*
+*Note that for the Jura component, you need to specify a Model. Current options are: E6, E8, F6, F7 or UNKNOWN.  We are working on adding support for new models and enhancing current model detail as the communnty gives feedback, using the diagnostic functions.*
 
-See the example YAML files for real examples.
+See the [examples/](examples/) folder for complete configuration examples.
 
 ---
 
