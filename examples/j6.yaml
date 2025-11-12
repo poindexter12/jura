@@ -50,7 +50,7 @@ uart:
 button:
   - platform: template
     name: 'Turn Off'
-    icon: "mdi:coffee-maker"
+    icon: "mdi:coffee-maker-outline"
     id: jura_turn_off
     on_press:
       - lambda: |-
