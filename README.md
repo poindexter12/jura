@@ -47,13 +47,11 @@ uart:
   baud_rate: 9600
 ```
 
-<details>
-<summary>⚙️ Practical note about voltage tolerance</summary>
+### ⚙️ Practical note about voltage tolerance
 
-Officially, ESP devices are **not 5 V tolerant**.  
-Unofficially—many of us have connected 5 V UARTs to ESP boards without immediate issues.  
-Proceed at your own risk: your luck, your device, your coffee. ☕😅  
-</details>
+Officially, ESP devices are **not 5 V tolerant**.
+Unofficially—many of us have connected 5 V UARTs to ESP boards without immediate issues.
+Proceed at your own risk: your luck, your device, your coffee. ☕😅
 
 ---
 
