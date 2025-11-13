@@ -140,7 +140,7 @@ You can create buttons to control your Jura machine using the `cmd2jura()` funct
 | `FA:07` | Cappuccino | Espresso with milk foam (models with milk capability) |
 | `FA:09` | Coffee | Standard coffee |
 
-**Note**: Available beverages vary by model. Not all commands work on all machines (e.g., cappuccino requires milk frothing capability).
+**Note**: Available beverages vary by model. Not all commands work on all machines (e.g., cappuccino requires milk frothing capability). FA commands are model-specific and may trigger different drinks on different models.
 
 #### Example Button Configuration
 
@@ -155,6 +155,8 @@ button:
 ```
 
 See the [examples/](examples/) folder for complete button configurations for each model.
+
+📖 **For a comprehensive list of known commands and discovery guidance, see [COMMANDS.md](COMMANDS.md)**
 
 ---
 
