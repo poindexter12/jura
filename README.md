@@ -19,7 +19,7 @@ This project builds on the fantastic work by [Ryan Alden’s original Jura compo
 - ✅ Updated **bit-flags** for the Jura E8 (your model may differ)
 - ✅ Introduced model selection. With the help of the community, we will refine this for each machine type.
 - ✅ Added **Jura CoolControl** support (milk cooler integration)  
-- ✅ Diagnostic Sensors to help discover counter and flag meanings. See below 
+- ✅ Diagnostic Sensors to help discover counter and flag meanings. See below
 
 ---
 
@@ -29,7 +29,6 @@ This project builds on the fantastic work by [Ryan Alden’s original Jura compo
 > ESP pins are **not 5 V tolerant**. Always use a level-shifter if unsure.
 
 ![Jura Wiring Diagram](https://github.com/user-attachments/assets/6f2bb48f-e853-409c-b768-2b08b87c70d2)
-
 
 | Pin | Description | Notes |
 |-----|--------------|-------|
@@ -114,7 +113,6 @@ The **Jura component** polls the machine every **2 seconds**, sending two serial
 | `Changed Counters` | Show the raw value changes between previous and current for diagnostics and discovery|
 | `IC Bits` | Show the raw bit/status flags for diagnostics and discovery |
 
-
 The sensors exposed by each machine may be different depending on the model selected.
 
 ### Example Dashboard
@@ -197,9 +195,11 @@ This sensor captures the RAW values converted to decimals from the first data re
 ![Changed Counters Example](https://github.com/user-attachments/assets/022bba13-35f9-4531-8a3d-6e19dc9cb5a1)
 
 This comma-separated list will give you clues about what values changed after making a specific beverage.
-```
+
+```text
 changed to counter_4 9836→9837, counter_11 41177→41181, counter_14 630→631, counter_15 7→8, counter_16 136→137
 ```
+
 In the example above, after making a "Flat White"  on the Jura E8, you can see several counters increased:
 
 | Counter | Values | Notes |
