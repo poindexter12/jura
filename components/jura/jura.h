@@ -19,7 +19,7 @@ class Jura : public PollingComponent, public uart::UARTDevice {
  public:
   void set_model(const std::string &m) { model_ = m; }
 
-  void register_metric_sensor(const std::string &key, sensor::Sensor *s) { numeric_[key] = s; }
+  void register_metric_sensor(const std::string &key, sensor::Sensor *s) { numeric_[key].push_back(s); }
   void register_text_sensor(const std::string &key, text_sensor::TextSensor *t) { text_[key] = t; }
 
   // Maintenance binary sensor: true once counter_n reaches threshold.
@@ -29,7 +29,10 @@ class Jura : public PollingComponent, public uart::UARTDevice {
 
   void publish_number(const std::string &key, float value) {
     auto it = numeric_.find(key);
-    if (it != numeric_.end() && it->second) it->second->publish_state(value);
+    if (it == numeric_.end()) return;
+    for (auto *s : it->second) {
+      if (s) s->publish_state(value);
+    }
   }
   void publish_text(const std::string &key, const std::string &value) {
     auto it = text_.find(key);
@@ -314,7 +317,7 @@ class Jura : public PollingComponent, public uart::UARTDevice {
 
   std::string model_{"UNKNOWN"};
 
-  std::map<std::string, sensor::Sensor *> numeric_;
+  std::map<std::string, std::vector<sensor::Sensor *>> numeric_;
   std::map<std::string, text_sensor::TextSensor *> text_;
 
   struct MaintenanceSensor {
