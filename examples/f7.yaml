@@ -8,7 +8,7 @@ esp8266:
 external_components:
  - source:
       type: git
-      url: https://github.com/tiaanv/jura
+      url: https://github.com/poindexter12/jura
    components: [jura]
 
 # Enable logging
