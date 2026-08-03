@@ -167,7 +167,7 @@ All models also get these text sensors:
 
 ### Control commands
 
-Send commands with the `cmd2jura()` function. The most useful ones:
+Send commands with the `send_command()` action. The most useful ones:
 
 | Command | Description |
 |---------|-------------|
@@ -190,10 +190,12 @@ button:
     icon: "mdi:coffee"
     on_press:
       - lambda: |-
-          auto result = id(jura_coffee).cmd2jura("FA:04");
+          id(jura_coffee).send_command("FA:04");
 ```
 
 The [examples/](examples/) folder has full button sets per model.
+
+Commands are queued and sent between polls, so buttons never collide with the component's own traffic. The response is logged at `INFO` level. The old `cmd2jura()` call still compiles for backward compatibility, but is deprecated and always returns an empty string.
 
 📖 **For the comprehensive command list and discovery guidance, see [COMMANDS.md](COMMANDS.md).**
 
