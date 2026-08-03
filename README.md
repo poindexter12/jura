@@ -113,7 +113,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/poindexter12/jura
-      ref: v1.1.0  # pin a release — recommended
+      ref: v1.2.0  # pin a release — recommended
     components: [ jura, jura_coolcontrol ]  # You only need one!
 
 uart:
