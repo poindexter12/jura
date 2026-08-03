@@ -33,15 +33,56 @@ Two independent ESPHome external components live in this repo:
 ## ⚡ Hardware & Wiring
 
 > **⚠️ Warning:** Incorrect wiring can permanently damage your Jura machine or your ESP device.
-> ESP pins are **not 5 V tolerant**. Always use a level-shifter if unsure.
+> ESP pins are **not 5 V tolerant**. Use a level shifter.
 
 ![Jura Wiring Diagram](https://github.com/user-attachments/assets/6f2bb48f-e853-409c-b768-2b08b87c70d2)
 
-| Pin | Description | Notes |
-|-----|--------------|-------|
-| TX  | ESP → Jura   | Send commands |
-| RX  | Jura → ESP   | Receive data |
-| GND | Common ground | Shared reference |
+### Service port pinout
+
+Modern machines (E6/E8 generation) expose a 7-pin service port; only four pins are functional. Verified on an E6, matching the [community pinout reference](https://www.k64.org/electro/jura/ports.html):
+
+| Pin | Function | Notes |
+|-----|----------|-------|
+| 1 | *not used* | undocumented |
+| 2 | **TX** (machine → ESP) | 5 V logic |
+| 3 | **GND** | common ground |
+| 4 | **RX** (ESP → machine) | 5 V logic |
+| 5 | *not used* | undocumented |
+| 6 | **+5 V** | **switched** — powers off when the machine sleeps |
+| 7 | *not used* | undocumented |
+
+Older machines (e.g. Impressa E65) use a simpler 4-pin port (TX/GND/RX/+5 V) — same four signals, same protocol. If the machine doesn't respond, swap TX/RX first.
+
+### Recommended wiring (with level shifter)
+
+```
+      JURA service port                 Level shifter (BSS138)           ESP32-C3
+      (machine side)                    HV side    |    LV side
+      ─────────────────                 ──────────────────────           ────────
+  pin 6  +5V   ──────────────────────►  HV VCC     |    LV VCC  ◄──────  3V3
+  pin 3  GND   ───────────┬──────────►  GND        |    GND     ◄──┬───  GND
+  pin 2  TX (5V, mach→ESP) ──────────►  HV1        |    LV1  ──────┼──►  RX  (GPIO20)
+  pin 4  RX (5V, ESP→mach) ◄─────────   HV2        |    LV2  ◄─────┼───  TX  (GPIO21)
+                          │                                        │
+                          └───────── one common ground ────────────┘
+```
+
+Three rules:
+
+1. **Pin 6 feeds ONLY the shifter's high-side VCC.** It's the 5 V reference, so the high side dies when the machine sleeps. Never bridge an external 5 V supply to pin 6.
+2. **The ESP's 3V3 feeds the low-side VCC.**
+3. **One common ground** across machine, shifter, and ESP.
+
+### Powering the ESP
+
+The simplest setup powers the ESP from **pin 6** — but on modern machines that pin is dead whenever the machine sleeps, so the ESP sleeps with it and can't wake the machine remotely.
+
+> **⚠️ Backfeed warning:** if you power the ESP externally (USB, separate supply) while it is wired to a sleeping machine, the ESP's idle-high TX line can leak current into the machine's logic board and corrupt its power-on state — a machine that flashes on and immediately shuts off when you press the power button is the classic symptom. The wiring above prevents most of it (the shifter's high side dies with pin 6); direct-wired setups without a shifter are fully exposed. Remote power-on research is tracked in [#17](https://github.com/poindexter12/jura/issues/17).
+
+### Recommended boards
+
+- **ESP32-C3 SuperMini** or **M5Stack Atom Lite** — small, cheap, ESP-IDF support, the best default today
+- **Wemos D1 mini (ESP8266)** — works fine and is what most existing installs use, but the platform is aging
 
 ### Example UART setup (ESP32-C3)
 
@@ -72,6 +113,7 @@ external_components:
   - source:
       type: git
       url: https://github.com/poindexter12/jura
+      ref: v1.1.0  # pin a release — recommended
     components: [ jura, jura_coolcontrol ]  # You only need one!
 
 uart:
@@ -93,7 +135,9 @@ jura_coolcontrol:
   uart_id: uart_bus
 ```
 
-This is just the barebones structure. The [examples/](examples/) folder has complete, buildable configurations:
+Pinning `ref:` to a [release tag](https://github.com/poindexter12/jura/releases) keeps your install stable across future changes; drop the line to track `main` (latest, occasionally experimental).
+
+This is just the barebones structure. The [examples/](examples/) folder has complete, buildable configurations (these track `main`):
 
 | Example | Target | Framework |
 |---------|--------|-----------|
@@ -310,6 +354,12 @@ Let's make our coffee smarter — responsibly.
 - [Ryan Alden's original component](https://github.com/ryanalden/esphome-jura-component) — the one that started it all
 - [AH Wood's fantastic F7 component](https://github.com/alco28/Jura-F7-ESPHOME) — with much more!
 - [Jutta-Proto protocol project](https://github.com/Jutta-Proto/protocol-cpp) — protocol research
+
+---
+
+## 📄 License
+
+[MIT](LICENSE). This fork descends from upstream projects that carry no license file — see [NOTICE](NOTICE) for the heritage details and how that's handled.
 
 ---
 
