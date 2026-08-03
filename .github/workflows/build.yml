@@ -55,3 +55,48 @@ jobs:
 
       - name: Compile
         run: esphome compile examples/${{ matrix.config }}.yaml
+
+  # Verifies the minimum ESPHome version the README claims compatibility with.
+  # If this job breaks on a legitimately needed newer feature, bump the pin
+  # AND the README claim together.
+  build-min-esphome:
+    name: Build e6_e8 (ESPHome 2024.4)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install minimum ESPHome
+        run: pip install esphome==2024.4.2
+
+      - name: Cache build tools
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.platformio
+            examples/.esphome
+          key: build-min-esphome-${{ hashFiles('examples/*.yaml') }}
+          restore-keys: build-min-esphome-
+
+      - name: Use local component source
+        run: |
+          sed -i \
+            -e 's|type: git|type: local|' \
+            -e 's|url: https://github.com/poindexter12/jura|path: ../components|' \
+            examples/*.yaml
+
+      - name: Create CI secrets
+        run: |
+          cat > examples/secrets.yaml <<'EOF'
+          wifi_ssid: "ci-ssid"
+          wifi_password: "ci-wifi-password"
+          api_key: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+          ota_password: "ci-ota-password"
+          fallback_password: "ci-fallback-password"
+          EOF
+
+      - name: Compile
+        run: esphome compile examples/e6_e8.yaml
