@@ -204,6 +204,22 @@ All models also get these text sensors:
 | `machine_status` — Machine Status | `Ready`, `Tray Missing`, `Fill Tank`, `Busy (Coffee Drink)`, `Busy (Milk Drink)` |
 | `counters_changed` — Changed Counters | Diagnostic: raw counter deltas between polls, for discovery |
 | `ic_bits` — IC Bits | Diagnostic: raw status bit flags (`A=… B=…`), for discovery |
+| `machine_type` — Machine Type | Diagnostic: the machine's raw `TY:` self-identification, queried once at startup. Include it when contributing counter maps! |
+
+### Maintenance binary sensors (opt-in)
+
+On models that track brews-since-cleaning/descaling (currently the **E8**), you can enable `problem`-class binary sensors that trip once a threshold is reached — great for HA automations and dashboard badges:
+
+```yaml
+jura:
+  model: E8
+  needs_cleaning:
+    threshold: 180   # brews since last cleaning (default 180)
+  needs_descaling:
+    threshold: 300   # brews since last descaling (default 300)
+```
+
+The thresholds are yours to tune — the machine's own maintenance schedule varies by water hardness and habits. If your model isn't supported, the config will tell you; help map its counters via the [diagnostics](#-diagnostics)!
 
 ### Example dashboard
 
@@ -240,6 +256,22 @@ button:
 The [examples/](examples/) folder has full button sets per model.
 
 Commands are queued and sent between polls, so buttons never collide with the component's own traffic. The response is logged at `INFO` level. The old `cmd2jura()` call still compiles for backward compatibility, but is deprecated and always returns an empty string.
+
+#### Raw commands from Home Assistant
+
+The examples also expose an `esphome.<node>_send_jura_command` service, so you can fire arbitrary commands from HA Developer Tools or scripts — no reflash needed for command discovery:
+
+```yaml
+api:
+  services:
+    - service: send_jura_command
+      variables:
+        command: string
+      then:
+        - lambda: id(jura_coffee).send_command(command);
+```
+
+The machine's response appears in the ESPHome log. ⚠️ Some commands trigger maintenance cycles — see the safety notes in [COMMANDS.md](COMMANDS.md).
 
 📖 **For the comprehensive command list and discovery guidance, see [COMMANDS.md](COMMANDS.md).**
 

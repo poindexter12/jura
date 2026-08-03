@@ -4,6 +4,7 @@
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/core/log.h"
 #include <deque>
 #include <map>
@@ -20,6 +21,11 @@ class Jura : public PollingComponent, public uart::UARTDevice {
 
   void register_metric_sensor(const std::string &key, sensor::Sensor *s) { numeric_[key] = s; }
   void register_text_sensor(const std::string &key, text_sensor::TextSensor *t) { text_[key] = t; }
+
+  // Maintenance binary sensor: true once counter_n reaches threshold.
+  void add_maintenance_sensor(binary_sensor::BinarySensor *bs, int counter_n, long threshold) {
+    maintenance_.push_back({bs, counter_n, threshold});
+  }
 
   void publish_number(const std::string &key, float value) {
     auto it = numeric_.find(key);
@@ -44,6 +50,7 @@ class Jura : public PollingComponent, public uart::UARTDevice {
   }
 
   void update() override {
+    if (!type_received_) enqueue_("TY:", REQ_TYPE);
     enqueue_("RT:0000", REQ_COUNTERS);
     enqueue_("IC:", REQ_FLAGS);
   }
@@ -63,7 +70,7 @@ class Jura : public PollingComponent, public uart::UARTDevice {
   }
 
  protected:
-  enum RequestKind : uint8_t { REQ_COUNTERS, REQ_FLAGS, REQ_USER };
+  enum RequestKind : uint8_t { REQ_COUNTERS, REQ_FLAGS, REQ_TYPE, REQ_USER };
   struct Request {
     std::string cmd;
     RequestKind kind;
@@ -160,6 +167,11 @@ class Jura : public PollingComponent, public uart::UARTDevice {
       case REQ_FLAGS:
         handle_flags_(rx_buf_);
         break;
+      case REQ_TYPE:
+        type_received_ = true;
+        ESP_LOGI(TAG, "Machine type: %s", rx_buf_.c_str());
+        publish_text("machine_type", rx_buf_);
+        break;
       case REQ_USER:
         ESP_LOGI(TAG, "Response to %s: %s", active_.cmd.c_str(), rx_buf_.c_str());
         break;
@@ -193,6 +205,11 @@ class Jura : public PollingComponent, public uart::UARTDevice {
     publish_number("counter_16", get_counter_n_(current, 16));
 
     publish_counter_changes_(current);
+
+    for (const auto &m : maintenance_) {
+      const long v = get_counter_n_(current, m.counter_n);
+      if (v >= 0) m.bs->publish_state(v >= m.threshold);
+    }
   }
 
   void handle_flags_(const std::string &ic) {
@@ -299,6 +316,14 @@ class Jura : public PollingComponent, public uart::UARTDevice {
 
   std::map<std::string, sensor::Sensor *> numeric_;
   std::map<std::string, text_sensor::TextSensor *> text_;
+
+  struct MaintenanceSensor {
+    binary_sensor::BinarySensor *bs;
+    int counter_n;
+    long threshold;
+  };
+  std::vector<MaintenanceSensor> maintenance_;
+  bool type_received_{false};
 
   std::vector<long> last_counters_;
   bool last_counters_initialized_{false};
