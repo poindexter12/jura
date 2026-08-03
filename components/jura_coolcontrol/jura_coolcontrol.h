@@ -54,35 +54,27 @@ std::string cmd2jura(const std::string &out, uint32_t rx_timeout_ms = 1000) {
   return inbytes;
 }
 
-  void setup() override {
-    this->set_update_interval(2000); // 600000 = 10 minutes // Now 60 seconds
-  }
-
-  // void loop() override {
-  // }
-
   void update() override {
       // Send the configured command and log the parsed response
       std::string resp = this->cmd2jura("RT:0000");
-      float level = NAN;
-      float temp_c = NAN;        
-      if (!resp.empty()) {
+      if (resp.size() >= 8) {
         ESP_LOGI(TAG, "Response (text): %s", resp.c_str());
 
-        uint8_t value = std::stoul(resp.substr(4, 2), nullptr, 16);
+        uint8_t value = static_cast<uint8_t>(strtol(resp.substr(4, 2).c_str(), nullptr, 16));
         ESP_LOGI(TAG, "Level: %i", value);
-        level = value;
-        value = std::stoul(resp.substr(6, 2), nullptr, 16);
+        float level = value;
+        value = static_cast<uint8_t>(strtol(resp.substr(6, 2).c_str(), nullptr, 16));
         ESP_LOGI(TAG, "Temperature: %i", value);
-        temp_c = value / 10.0;
+        float temp_c = value / 10.0;
 
-      if (this->level_sensor_ && !std::isnan(level)) {
-        this->level_sensor_->publish_state(level);
-      }
-      if (this->temperature_sensor_ && !std::isnan(temp_c)) {
-        this->temperature_sensor_->publish_state(temp_c);
-      }
-
+        if (this->level_sensor_ && !std::isnan(level)) {
+          this->level_sensor_->publish_state(level);
+        }
+        if (this->temperature_sensor_ && !std::isnan(temp_c)) {
+          this->temperature_sensor_->publish_state(temp_c);
+        }
+      } else if (!resp.empty()) {
+        ESP_LOGW(TAG, "Response too short to parse (len=%d): %s", (int) resp.size(), resp.c_str());
       } else {
         ESP_LOGW(TAG, "No response (timeout or empty).");
       }
