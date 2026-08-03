@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.config }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [e6_e8, f6, f7, coolcontrol]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ESPHome
+        run: pip install esphome
+
+      - name: Cache build tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            examples/.esphome
+          key: build-${{ matrix.config }}-${{ hashFiles('examples/*.yaml') }}
+          restore-keys: build-${{ matrix.config }}-
+
+      # Examples point at the published repo; build against this checkout instead
+      - name: Use local component source
+        run: |
+          sed -i \
+            -e 's|type: git|type: local|' \
+            -e 's|url: https://github.com/tiaanv/jura|path: ../components|' \
+            examples/*.yaml
+
+      - name: Create CI secrets
+        run: |
+          cat > examples/secrets.yaml <<'EOF'
+          wifi_ssid: "ci-ssid"
+          wifi_password: "ci-wifi-password"
+          api_key: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+          ota_password: "ci-ota-password"
+          fallback_password: "ci-fallback-password"
+          EOF
+
+      - name: Compile
+        run: esphome compile examples/${{ matrix.config }}.yaml
