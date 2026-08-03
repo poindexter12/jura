@@ -58,47 +58,30 @@ jura:
   uart_id: uart_bus
   model: E6  # Options: E6, E8, F6, F7, UNKNOWN
 
-# Control Buttons
+# Power (optimistic: the machine reports no power state back)
+switch:
+  - platform: jura
+    name: 'Coffee Machine Power'
+
+# Control buttons — native platform; drink names map to FA commands
 button:
-  - platform: template
-    name: 'Turn On Coffee Machine'
-    icon: "mdi:coffee-maker"
-    id: jura_turn_on
-    on_press:
-      - lambda: |-
-          id(jura_coffee).send_command("AN:01");
+  - platform: jura
+    name: 'Make Espresso'
+    drink: espresso
 
-  - platform: template
-    name: 'Turn Off Coffee Machine'
-    icon: "mdi:coffee-maker-outline"
-    id: jura_turn_off
-    on_press:
-      - lambda: |-
-          id(jura_coffee).send_command("AN:02");
+  - platform: jura
+    name: 'Make Coffee'
+    drink: coffee
 
-  - platform: template
+  - platform: jura
     name: 'Make Hot Water'
     icon: "mdi:cup-water"
-    id: jura_make_hot_water
-    on_press:
-      - lambda: |-
-          id(jura_coffee).send_command("FA:06");
+    drink: hot_water
 
-  - platform: template
-    name: 'Make Espresso'
-    icon: "mdi:coffee"
-    id: jura_make_espresso
-    on_press:
-      - lambda: |-
-          id(jura_coffee).send_command("FA:04");
-
-  - platform: template
-    name: 'Make Coffee'
-    icon: "mdi:coffee"
-    id: jura_make_coffee
-    on_press:
-      - lambda: |-
-          id(jura_coffee).send_command("FA:09");
+  # Raw command escape hatch, e.g. for command discovery
+  - platform: jura
+    name: 'Mystery Command'
+    command: "FA:0C"
 
   - platform: restart
     name: Restart
