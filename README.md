@@ -113,8 +113,9 @@ external_components:
   - source:
       type: git
       url: https://github.com/poindexter12/jura
-      ref: v1.2.0  # pin a release — recommended
+      ref: v1         # follows the latest v1.x release — recommended
     components: [ jura, jura_coolcontrol ]  # You only need one!
+    refresh: 1d       # re-check floating refs daily (not needed for exact pins)
 
 uart:
   id: uart_bus
@@ -135,7 +136,16 @@ jura_coolcontrol:
   uart_id: uart_bus
 ```
 
-Pinning `ref:` to a [release tag](https://github.com/poindexter12/jura/releases) keeps your install stable across future changes; drop the line to track `main` (latest, occasionally experimental).
+Pick the `ref:` that matches your appetite for change:
+
+| `ref:` | Moves? | You get |
+|--------|--------|---------|
+| `v1` *(recommended)* | on every v1.x release | latest features, **no breaking changes** — a new major (`v2`) requires you to opt in |
+| `latest` | on every release | newest release, including future breaking majors |
+| `v1.2.0` (exact tag) | never | bit-for-bit reproducible installs; bump on your schedule |
+| *(none — tracks `main`)* | every merge | the development branch, occasionally experimental |
+
+Floating refs (`v1`, `latest`, `main`) need the `refresh:` option — ESPHome caches git sources, so without it you'd stay on the cached commit forever. Exact tags don't need it.
 
 This is just the barebones structure. The [examples/](examples/) folder has complete, buildable configurations (these track `main`):
 
