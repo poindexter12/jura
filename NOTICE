@@ -1,0 +1,19 @@
+NOTICE — code heritage
+
+This repository is a maintained fork in a chain of community projects:
+
+  ryanalden/esphome-jura-component  (original ESPHome Jura component)
+    -> tiaanv/jura                  (external-component modernization,
+                                     CoolControl support)
+      -> poindexter12/jura          (this repository)
+
+Neither upstream repository carries a license file. The MIT license in this
+repository applies to the contributions made here; code inherited from the
+upstream chain remains the work of its original authors, who are credited in
+the README. This fork is distributed in the same open, hobbyist spirit in
+which the upstream projects were shared. If you are an upstream author and
+have any concern about licensing or attribution, please open an issue and it
+will be resolved promptly.
+
+The Jutta-Proto project (GPL-3.0) is referenced as protocol documentation
+only; no code from it is included in this repository.
