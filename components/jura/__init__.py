@@ -74,6 +74,12 @@ MAINTENANCE_SOURCE = {
     F_NEEDS_DESCALING: {"E8": 14},
 }
 
+# Custom counter mapping: expose any raw counter as a named sensor without
+# forking the component. Working custom_counters maps make great PRs for
+# new MODEL_MAP entries!
+CONF_CUSTOM_COUNTERS = "custom_counters"
+CONF_COUNTER = "counter"
+
 # C++ binding
 jura_ns = cg.esphome_ns.namespace("jura")
 Jura = jura_ns.class_("Jura", cg.PollingComponent, uart.UARTDevice)
@@ -143,6 +149,13 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Optional(F_NEEDS_DESCALING):
         binary_sensor.binary_sensor_schema(device_class=DEVICE_CLASS_PROBLEM, icon="mdi:water-alert")
         .extend({cv.Optional(CONF_THRESHOLD, default=300): cv.positive_int}),
+
+    # Map any raw counter (1-16) to an extra named sensor
+    cv.Optional(CONF_CUSTOM_COUNTERS): cv.ensure_list(
+        sensor.sensor_schema(icon=ICON_CUP, accuracy_decimals=0).extend({
+            cv.Required(CONF_COUNTER): cv.int_range(min=1, max=16),
+        })
+    ),
 }).extend(uart.UART_DEVICE_SCHEMA).extend(cv.polling_component_schema("2s"))
 
 # ---------- MODEL → which fields to expose & which publish keys they map to ----------
@@ -289,6 +302,12 @@ async def to_code(config):
             )
         bs = await binary_sensor.new_binary_sensor(config[field_key])
         cg.add(var.add_maintenance_sensor(bs, sources[model], config[field_key][CONF_THRESHOLD]))
+
+    # Custom counters: extra sensors on raw counter positions (may coexist
+    # with a model-mapped sensor on the same counter)
+    for conf in config.get(CONF_CUSTOM_COUNTERS, []):
+        s = await sensor.new_sensor(conf)
+        cg.add(var.register_metric_sensor(cg.std_string(f"counter_{conf[CONF_COUNTER]}"), s))
 
 
 

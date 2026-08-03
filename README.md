@@ -221,6 +221,23 @@ jura:
 
 The thresholds are yours to tune — the machine's own maintenance schedule varies by water hardness and habits. If your model isn't supported, the config will tell you; help map its counters via the [diagnostics](#-diagnostics)!
 
+### Custom counters (opt-in)
+
+Expose any raw counter as a named sensor without forking the component — perfect for `UNKNOWN` machines and for validating discoveries before contributing them:
+
+```yaml
+jura:
+  model: UNKNOWN
+  custom_counters:
+    - counter: 9
+      name: "Lungo Made"
+      unit_of_measurement: cups
+    - counter: 13
+      name: "Mystery Counter 13"
+```
+
+A custom counter can coexist with a model-mapped sensor on the same position. Once your mapping is confirmed, open a PR to add it to the model map so everyone benefits!
+
 ### Example dashboard
 
 ![Jura Dashboard](https://github.com/user-attachments/assets/8fde2d3c-cc85-4a5d-ab0a-e84f5641cd6e)
@@ -241,17 +258,28 @@ Send commands with the `send_command()` action. The most useful ones:
 
 **Note:** `FA:` commands simulate button presses and are **model-specific** — the same command may trigger different drinks on different machines. Always test on your model.
 
-#### Example button
+#### Native buttons & power switch
+
+The component ships `button` and `switch` platforms — no lambdas needed:
 
 ```yaml
+switch:
+  - platform: jura
+    name: 'Coffee Machine Power'   # sends AN:01 / AN:02 (optimistic state)
+
 button:
-  - platform: template
+  - platform: jura
     name: 'Make Espresso'
-    icon: "mdi:coffee"
-    on_press:
-      - lambda: |-
-          id(jura_coffee).send_command("FA:04");
+    drink: espresso                # espresso, ristretto, hot_water, cappuccino, coffee
+
+  - platform: jura
+    name: 'Mystery Command'
+    command: "FA:0C"               # raw escape hatch for discovery
 ```
+
+The power switch is **optimistic** — the machine reports no power state back, so the switch shows the last command sent. Whether `AN:01` can wake a fully sleeping machine is hardware-dependent (see [Powering the ESP](#powering-the-esp)).
+
+Template buttons with `id(jura_coffee).send_command("FA:04");` lambdas still work for anything custom.
 
 The [examples/](examples/) folder has full button sets per model.
 
