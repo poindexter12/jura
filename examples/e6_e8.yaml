@@ -20,6 +20,15 @@ logger:
 api:
   encryption:
     key: !secret api_key
+  # Exposes esphome.<node>_send_jura_command in Home Assistant for raw
+  # command discovery (see COMMANDS.md). Some commands trigger maintenance
+  # cycles -- use with care.
+  services:
+    - service: send_jura_command
+      variables:
+        command: string
+      then:
+        - lambda: id(jura_coffee).send_command(command);
 
 ota:
   - platform: esphome

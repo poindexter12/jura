@@ -1,10 +1,17 @@
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["sensor", "text_sensor"]
+AUTO_LOAD = ["sensor", "text_sensor", "binary_sensor"]
 
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import uart, sensor, text_sensor
-from esphome.const import CONF_ID, CONF_NAME, UNIT_EMPTY, ENTITY_CATEGORY_DIAGNOSTIC
+from esphome.components import uart, sensor, text_sensor, binary_sensor
+from esphome.const import (
+    CONF_ID,
+    CONF_NAME,
+    CONF_THRESHOLD,
+    DEVICE_CLASS_PROBLEM,
+    ENTITY_CATEGORY_DIAGNOSTIC,
+    UNIT_EMPTY,
+)
 
 # Icons/units
 ICON_CUP = "mdi:cup"
@@ -54,6 +61,18 @@ F_MACHINE_STATUS        = "machine_status"
 
 F_COUNTERS_CHANGED      = "counters_changed"
 F_IC_BITS = "ic_bits"
+F_MACHINE_TYPE          = "machine_type"
+
+# Maintenance binary sensors (opt-in; require a model that maps the
+# underlying brews-since counter)
+F_NEEDS_CLEANING        = "needs_cleaning"
+F_NEEDS_DESCALING       = "needs_descaling"
+
+# field -> {model: source counter (1-based)}
+MAINTENANCE_SOURCE = {
+    F_NEEDS_CLEANING:  {"E8": 16},
+    F_NEEDS_DESCALING: {"E8": 14},
+}
 
 # C++ binding
 jura_ns = cg.esphome_ns.namespace("jura")
@@ -114,6 +133,16 @@ CONFIG_SCHEMA = cv.Schema({
         text_sensor.text_sensor_schema(icon="mdi:format-list-bulleted",entity_category=ENTITY_CATEGORY_DIAGNOSTIC),    
     cv.Optional(F_IC_BITS, default={CONF_NAME: "IC Bits"}):
         text_sensor.text_sensor_schema(icon="mdi:binary",entity_category=ENTITY_CATEGORY_DIAGNOSTIC),
+    cv.Optional(F_MACHINE_TYPE, default={CONF_NAME: "Machine Type"}):
+        text_sensor.text_sensor_schema(icon="mdi:coffee-maker-outline",entity_category=ENTITY_CATEGORY_DIAGNOSTIC),
+
+    # Maintenance binary sensors (opt-in, E8 for now — see MAINTENANCE_SOURCE)
+    cv.Optional(F_NEEDS_CLEANING):
+        binary_sensor.binary_sensor_schema(device_class=DEVICE_CLASS_PROBLEM, icon="mdi:liquid-spot")
+        .extend({cv.Optional(CONF_THRESHOLD, default=180): cv.positive_int}),
+    cv.Optional(F_NEEDS_DESCALING):
+        binary_sensor.binary_sensor_schema(device_class=DEVICE_CLASS_PROBLEM, icon="mdi:water-alert")
+        .extend({cv.Optional(CONF_THRESHOLD, default=300): cv.positive_int}),
 }).extend(uart.UART_DEVICE_SCHEMA).extend(cv.polling_component_schema("2s"))
 
 # ---------- MODEL → which fields to expose & which publish keys they map to ----------
@@ -136,6 +165,7 @@ MODEL_MAP = {
             (F_MACHINE_STATUS,        "machine_status"),
             (F_COUNTERS_CHANGED,      "counters_changed"),
             (F_IC_BITS,               "ic_bits"),
+            (F_MACHINE_TYPE,          "machine_type"),
         ],
     },
     "F6": {
@@ -153,7 +183,8 @@ MODEL_MAP = {
             (F_TANK_STATUS,           "water_tank_status"),
             (F_MACHINE_STATUS,        "machine_status"),
             (F_COUNTERS_CHANGED,      "counters_changed"),
-            (F_IC_BITS,               "ic_bits"),            
+            (F_IC_BITS,               "ic_bits"),
+            (F_MACHINE_TYPE,          "machine_type"),            
         ],
     },
     "F7": {
@@ -175,7 +206,8 @@ MODEL_MAP = {
             (F_TANK_STATUS,           "water_tank_status"),
             (F_MACHINE_STATUS,        "machine_status"),
             (F_COUNTERS_CHANGED,      "counters_changed"),
-            (F_IC_BITS,               "ic_bits"),            
+            (F_IC_BITS,               "ic_bits"),
+            (F_MACHINE_TYPE,          "machine_type"),            
         ],
     },
     "E8": {
@@ -199,7 +231,8 @@ MODEL_MAP = {
             (F_TANK_STATUS,           "water_tank_status"),
             (F_MACHINE_STATUS,        "machine_status"),
             (F_COUNTERS_CHANGED,      "counters_changed"),
-            (F_IC_BITS,               "ic_bits"),            
+            (F_IC_BITS,               "ic_bits"),
+            (F_MACHINE_TYPE,          "machine_type"),            
         ],
     },
     "UNKNOWN": {
@@ -219,7 +252,8 @@ MODEL_MAP = {
             (F_TANK_STATUS,           "water_tank_status"),
             (F_MACHINE_STATUS,        "machine_status"),
             (F_COUNTERS_CHANGED,      "counters_changed"),
-            (F_IC_BITS,               "ic_bits"),            
+            (F_IC_BITS,               "ic_bits"),
+            (F_MACHINE_TYPE,          "machine_type"),            
         ],
     },
 }
@@ -242,6 +276,19 @@ async def to_code(config):
     for field_key, publish_key in spec.get("text", []):
         ts = await text_sensor.new_text_sensor(config[field_key])
         cg.add(var.register_text_sensor(cg.std_string(publish_key), ts))
+
+    # Maintenance binary sensors: only valid when the model maps the source counter
+    for field_key, sources in MAINTENANCE_SOURCE.items():
+        if field_key not in config:
+            continue
+        if model not in sources:
+            raise cv.Invalid(
+                f"{field_key} requires a model that tracks its source counter "
+                f"(currently: {', '.join(sorted(sources))}); model is {model}. "
+                f"Help map yours via the diagnostics sensors!"
+            )
+        bs = await binary_sensor.new_binary_sensor(config[field_key])
+        cg.add(var.add_maintenance_sensor(bs, sources[model], config[field_key][CONF_THRESHOLD]))
 
 
 

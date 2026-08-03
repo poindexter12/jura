@@ -83,8 +83,9 @@ To discover FA commands for your specific model:
 1. Enable the **diagnostic sensors** (`counters_changed` and `ic_bits`) in your configuration
 2. Make a beverage using the machine's physical buttons
 3. Watch which counters increment in the `counters_changed` sensor
-4. Try different FA commands (FA:01 through FA:0F) and observe results
-5. Document your findings and contribute back to the project!
+4. Try different FA commands (FA:01 through FA:0F) and observe results — the examples expose an `esphome.<node>_send_jura_command` service so you can fire commands straight from Home Assistant Developer Tools, no reflash needed
+5. Include your machine's `Machine Type` diagnostic sensor value (the raw `TY:` response) with your findings
+6. Document your findings and contribute back to the project!
 
 ## Contributing
 
