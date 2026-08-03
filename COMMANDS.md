@@ -4,7 +4,7 @@ This document lists known serial commands for controlling Jura coffee machines v
 
 ## Command Format
 
-Commands are sent using the `cmd2jura()` function in ESPHome YAML:
+Commands are sent using the component's `send_command()` method in ESPHome YAML:
 
 ```yaml
 button:
@@ -12,7 +12,7 @@ button:
     name: 'Make Espresso'
     on_press:
       - lambda: |-
-          auto result = id(jura_coffee).cmd2jura("FA:04");
+          id(jura_coffee).send_command("FA:04");
 ```
 
 ## Machine Control Commands

@@ -8,80 +8,68 @@
 namespace esphome {
 namespace jura_coolcontrol {
 
-static const char *const TAG = "jura_coolcontrol";  
+static const char *const TAG = "jura_coolcontrol";
 
 class JuraCoolcontrol : public PollingComponent, public uart::UARTDevice {
-
  public:
   void set_level_sensor(sensor::Sensor *s) { this->level_sensor_ = s; }
   void set_temperature_sensor(sensor::Sensor *s) { this->temperature_sensor_ = s; }
 
-// Sends 'out' plus CRLF using Jura's bit placement, then reads until CRLF or timeout.
-std::string cmd2jura(const std::string &out, uint32_t rx_timeout_ms = 1000) {
-  // 1) Flush any stale input
-  while (this->available()) this->read();
-
-  // 3) RX: bounded by timeout
-  std::string inbytes;
-  inbytes.reserve(64);
-  uint8_t assembled = 0;
-  int bitidx = 0;
-
-  const uint32_t start = millis();
-  while (millis() - start < rx_timeout_ms) {
-    if (this->available()) {
-      int raw = this->read();
-      //ESP_LOGI(TAG, "RAW: %i,%c", raw, raw);      
-      inbytes.push_back(static_cast<char>(raw));
-
-      // CRLF terminator?
-      const size_t n = inbytes.size();
-      if (n >= 2 && inbytes[n - 2] == '\r' && inbytes[n - 1] == '\n') {
-        inbytes.resize(n - 2);  // strip CRLF
-        return inbytes;
+  // The CoolControl broadcasts its status continuously as plain-text frames
+  // terminated by CRLF; we only ever listen. Frames are assembled here and
+  // the latest complete one is kept for update() to publish.
+  void loop() override {
+    while (this->available()) {
+      line_.push_back(static_cast<char>(this->read()));
+      const size_t n = line_.size();
+      if (n >= 2 && line_[n - 2] == '\r' && line_[n - 1] == '\n') {
+        line_.resize(n - 2);
+        if (parse_frame_(line_)) last_frame_at_ = millis();
+        line_.clear();
+      } else if (n > 256) {
+        ESP_LOGW(TAG, "Discarding oversized frame");
+        line_.clear();
       }
-
-      // guard against runaway data
-      if (inbytes.size() > 2048) {
-        ESP_LOGW(TAG, "RX buffer exceeded 2KB; truncating and returning partial.");
-        return inbytes;
-      }
-    } else {
-      delay(1);  // brief yield
     }
   }
-  // Timeout: return whatever we have (or {} if you prefer)
-  return inbytes;
-}
 
   void update() override {
-      // Send the configured command and log the parsed response
-      std::string resp = this->cmd2jura("RT:0000");
-      if (resp.size() >= 8) {
-        ESP_LOGI(TAG, "Response (text): %s", resp.c_str());
-
-        uint8_t value = static_cast<uint8_t>(strtol(resp.substr(4, 2).c_str(), nullptr, 16));
-        ESP_LOGI(TAG, "Level: %i", value);
-        float level = value;
-        value = static_cast<uint8_t>(strtol(resp.substr(6, 2).c_str(), nullptr, 16));
-        ESP_LOGI(TAG, "Temperature: %i", value);
-        float temp_c = value / 10.0;
-
-        if (this->level_sensor_ && !std::isnan(level)) {
-          this->level_sensor_->publish_state(level);
-        }
-        if (this->temperature_sensor_ && !std::isnan(temp_c)) {
-          this->temperature_sensor_->publish_state(temp_c);
-        }
-      } else if (!resp.empty()) {
-        ESP_LOGW(TAG, "Response too short to parse (len=%d): %s", (int) resp.size(), resp.c_str());
-      } else {
-        ESP_LOGW(TAG, "No response (timeout or empty).");
-      }
+    if (last_frame_at_ == 0) {
+      ESP_LOGW(TAG, "No broadcast received from CoolControl yet");
+      return;
     }
-  protected:    
-   sensor::Sensor *level_sensor_{nullptr};
-   sensor::Sensor *temperature_sensor_{nullptr};
+    if (millis() - last_frame_at_ > STALE_AFTER_MS) {
+      ESP_LOGW(TAG, "No broadcast for %u ms; not publishing stale values",
+               (unsigned) (millis() - last_frame_at_));
+      return;
+    }
+    if (this->level_sensor_) this->level_sensor_->publish_state(level_);
+    if (this->temperature_sensor_) this->temperature_sensor_->publish_state(temp_c_);
+  }
+
+ protected:
+  static const uint32_t STALE_AFTER_MS = 15000;
+
+  bool parse_frame_(const std::string &frame) {
+    if (frame.size() < 8) {
+      ESP_LOGD(TAG, "Ignoring short frame (len=%d): %s", (int) frame.size(), frame.c_str());
+      return false;
+    }
+    const uint8_t level = static_cast<uint8_t>(strtol(frame.substr(4, 2).c_str(), nullptr, 16));
+    const uint8_t temp_raw = static_cast<uint8_t>(strtol(frame.substr(6, 2).c_str(), nullptr, 16));
+    level_ = level;
+    temp_c_ = temp_raw / 10.0f;
+    ESP_LOGD(TAG, "Frame: %s (level=%.0f%% temp=%.1f°C)", frame.c_str(), level_, temp_c_);
+    return true;
+  }
+
+  sensor::Sensor *level_sensor_{nullptr};
+  sensor::Sensor *temperature_sensor_{nullptr};
+
+  std::string line_;
+  uint32_t last_frame_at_{0};
+  float level_{0};
+  float temp_c_{0};
 };
 
 }  // namespace jura_coolcontrol
