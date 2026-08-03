@@ -325,7 +325,7 @@ See the [Jura UART map](Jura_uart_map.md) for what we know so far.
 ## 🔧 Development Notes
 
 - Tested on **ESP8266** and **ESP32** variants (the examples cover a D1 mini and an ESP32-C3)
-- Compatible with **ESPHome ≥ 2024.4**
+- Compatible with **ESPHome ≥ 2024.6** (the examples use the list-style `ota:` syntax introduced in 2024.6)
 - Compiles on both **Arduino** and **ESP-IDF** frameworks
 - **CI:** every pull request and push to `main` [compiles all four example configs](.github/workflows/build.yml), so changes that break a build are caught before merge
 

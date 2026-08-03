@@ -60,7 +60,7 @@ jobs:
   # If this job breaks on a legitimately needed newer feature, bump the pin
   # AND the README claim together.
   build-min-esphome:
-    name: Build e6_e8 (ESPHome 2024.4)
+    name: Build e6_e8 (ESPHome 2024.6)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -70,7 +70,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install minimum ESPHome
-        run: pip install esphome==2024.4.2
+        run: pip install esphome==2024.6.6
 
       - name: Cache build tools
         uses: actions/cache@v6
